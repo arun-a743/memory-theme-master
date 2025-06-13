@@ -17,6 +17,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
   const [gameWon, setGameWon] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [canFlip, setCanFlip] = useState(true);
   const { toast } = useToast();
 
   // Timer effect
@@ -53,11 +54,13 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
     setTime(0);
     setGameWon(false);
     setGameStarted(true);
+    setCanFlip(true);
   }, [theme]);
 
-  // Shuffle unmatched cards
+  // Enhanced shuffling function that only shuffles unmatched cards
   const shuffleUnmatchedCards = useCallback(() => {
     setIsShuffling(true);
+    setCanFlip(false);
     
     setTimeout(() => {
       setCards(prevCards => {
@@ -84,13 +87,16 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
         return newCards;
       });
       
-      setIsShuffling(false);
+      setTimeout(() => {
+        setIsShuffling(false);
+        setCanFlip(true);
+      }, 300);
     }, 300);
   }, [matchedCards]);
 
-  // Handle card click
+  // Handle card click with enhanced logic
   const handleCardClick = useCallback((cardId) => {
-    if (flippedCards.length >= 2 || flippedCards.includes(cardId) || matchedCards.has(cardId) || isShuffling) {
+    if (!canFlip || flippedCards.length >= 2 || flippedCards.includes(cardId) || matchedCards.has(cardId) || isShuffling) {
       return;
     }
 
@@ -99,6 +105,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
 
     if (newFlippedCards.length === 2) {
       setMoves(moves => moves + 1);
+      setCanFlip(false);
       
       const card1 = cards.find(c => c.id === newFlippedCards[0]);
       const card2 = cards.find(c => c.id === newFlippedCards[1]);
@@ -111,7 +118,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
           
           toast({
             title: "Perfect match! 🎉",
-            description: "Cards found and shuffling deck...",
+            description: "Cards reshuffling for next challenge...",
           });
           
           // Shuffle after correct match
@@ -125,8 +132,8 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
           setFlippedCards([]);
           
           toast({
-            title: "Try again! 🔄",
-            description: "No match found, shuffling deck...",
+            title: "Try again! 🔄", 
+            description: "Cards reshuffling...",
           });
           
           // Shuffle after incorrect match
@@ -136,15 +143,15 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
         }, 1000);
       }
     }
-  }, [flippedCards, matchedCards, isShuffling, cards, moves, shuffleUnmatchedCards, toast]);
+  }, [flippedCards, matchedCards, isShuffling, cards, moves, shuffleUnmatchedCards, toast, canFlip]);
 
-  // Check win condition
+  // Check win condition and save score
   useEffect(() => {
     if (matchedCards.size === cards.length && cards.length > 0) {
       setGameWon(true);
       setGameStarted(false);
       
-      // Save score (simulate API call)
+      // Save score to localStorage (simulating backend save)
       const score = {
         userId: user.id,
         username: user.username,
@@ -154,11 +161,16 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
         date: new Date().toISOString()
       };
       
-      console.log('Game completed! Score:', score);
+      // Get existing scores
+      const existingScores = JSON.parse(localStorage.getItem('memoryGameScores') || '[]');
+      existingScores.push(score);
+      localStorage.setItem('memoryGameScores', JSON.stringify(existingScores));
+      
+      console.log('Game completed! Score saved:', score);
       
       toast({
-        title: "🏆 Congratulations!",
-        description: `Game completed in ${moves} moves and ${time} seconds!`,
+        title: "🏆 Incredible!",
+        description: `You conquered the chaos in ${moves} moves and ${time} seconds!`,
       });
     }
   }, [matchedCards.size, cards.length, moves, time, theme, user, toast]);
@@ -179,28 +191,28 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-violet-900 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <Button 
             onClick={onBackToMenu}
             variant="outline"
-            className="border-white/30 text-white hover:bg-white/10"
+            className="border-green-600/50 text-green-400 hover:bg-green-600/10 hover:border-green-400"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Menu
           </Button>
           
           <div className="flex items-center gap-4">
-            <Badge className="bg-white/20 text-white px-3 py-1">
+            <Badge className="bg-black/50 text-green-400 border border-green-600/50 px-3 py-1">
               <Clock className="w-4 h-4 mr-1" />
               {formatTime(time)}
             </Badge>
-            <Badge className="bg-white/20 text-white px-3 py-1">
+            <Badge className="bg-black/50 text-violet-400 border border-violet-600/50 px-3 py-1">
               Moves: {moves}
             </Badge>
-            <Badge className="bg-white/20 text-white px-3 py-1 capitalize">
+            <Badge className="bg-black/50 text-white border border-gray-600/50 px-3 py-1 capitalize">
               {theme}
             </Badge>
           </div>
@@ -208,16 +220,16 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
 
         {/* Game Status */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Memory Master - Dynamic Mode
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-violet-400 bg-clip-text text-transparent mb-2">
+            Dynamic Chaos Mode
           </h2>
-          <p className="text-white/80">
-            Find all pairs • Cards shuffle after every move!
+          <p className="text-gray-300">
+            Find all pairs • Cards reshuffle after every move!
           </p>
           {isShuffling && (
             <div className="flex items-center justify-center gap-2 mt-2">
-              <Shuffle className="w-4 h-4 text-yellow-300 animate-spin" />
-              <span className="text-yellow-300 font-medium">Shuffling cards...</span>
+              <Shuffle className="w-4 h-4 text-green-400 animate-spin" />
+              <span className="text-green-400 font-medium">Reshuffling chaos...</span>
             </div>
           )}
         </div>
@@ -242,28 +254,35 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
           <Button 
             onClick={resetGame}
             variant="outline"
-            className="border-white/30 text-white hover:bg-white/10"
+            className="border-violet-600/50 text-violet-400 hover:bg-violet-600/10 hover:border-violet-400"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Reset Game
+            Reset Challenge
           </Button>
         </div>
 
         {/* Win Modal */}
         {gameWon && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="bg-white max-w-md w-full">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <Card className="bg-black/90 border-green-600/50 max-w-md w-full">
               <CardContent className="p-6 text-center">
-                <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Congratulations!</h3>
-                <p className="text-gray-600 mb-4">
-                  You completed the game in <strong>{moves} moves</strong> and <strong>{formatTime(time)}</strong>!
+                <Trophy className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-white mb-2">Champion!</h3>
+                <p className="text-gray-300 mb-4">
+                  You conquered the chaos in <strong className="text-green-400">{moves} moves</strong> and <strong className="text-violet-400">{formatTime(time)}</strong>!
                 </p>
                 <div className="space-y-2">
-                  <Button onClick={resetGame} className="w-full">
-                    Play Again
+                  <Button 
+                    onClick={resetGame} 
+                    className="w-full bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700"
+                  >
+                    Face the Chaos Again
                   </Button>
-                  <Button onClick={onBackToMenu} variant="outline" className="w-full">
+                  <Button 
+                    onClick={onBackToMenu} 
+                    variant="outline" 
+                    className="w-full border-gray-600/50 text-gray-300 hover:bg-gray-800/50"
+                  >
                     Back to Menu
                   </Button>
                 </div>

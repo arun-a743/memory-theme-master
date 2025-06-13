@@ -12,9 +12,9 @@ export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, the
         "aspect-square cursor-pointer transition-all duration-300 transform-gpu relative overflow-hidden",
         "hover:scale-105 active:scale-95",
         isShuffling && "animate-pulse opacity-70",
-        isMatched && "ring-2 ring-green-400 bg-green-100",
-        isFlipped && !isMatched && "ring-2 ring-blue-400",
-        "bg-gradient-to-br from-white to-gray-100 shadow-lg"
+        isMatched && "ring-2 ring-green-400 bg-green-900/30",
+        isFlipped && !isMatched && "ring-2 ring-violet-400",
+        "bg-gradient-to-br from-black to-gray-900 shadow-xl border border-gray-700"
       )}
       onClick={onClick}
     >
@@ -34,13 +34,13 @@ export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, the
                 "shadow-inner"
               )}
             >
-              <div className="text-white/80 text-2xl font-bold">?</div>
+              <div className="text-white/90 text-2xl font-bold">?</div>
             </div>
           </div>
           
           {/* Card Front */}
           <div className="absolute inset-0 w-full h-full backface-hidden rounded-lg rotate-y-180">
-            <div className="w-full h-full bg-white rounded-lg flex items-center justify-center shadow-inner">
+            <div className="w-full h-full bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center shadow-inner border border-gray-200">
               <span className="text-3xl md:text-4xl" role="img" aria-label={card.symbol}>
                 {card.symbol}
               </span>
@@ -50,8 +50,8 @@ export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, the
       </div>
       
       {isShuffling && (
-        <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
-          <div className="w-4 h-4 bg-white rounded-full animate-ping" />
+        <div className="absolute inset-0 bg-violet-600/20 rounded-lg flex items-center justify-center">
+          <div className="w-4 h-4 bg-green-400 rounded-full animate-ping" />
         </div>
       )}
     </Card>

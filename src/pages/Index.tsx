@@ -8,7 +8,7 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { AuthModal } from "@/components/AuthModal";
 import { UserProfile } from "@/components/UserProfile";
 import { Leaderboard } from "@/components/Leaderboard";
-import { Brain, Trophy, Shuffle, Users } from "lucide-react";
+import { Brain, Trophy, Shuffle, Users, Sparkles, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -92,17 +92,19 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-violet-900 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
-              <Brain className="w-8 h-8 text-white" />
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-violet-600 to-green-600 p-4 rounded-3xl backdrop-blur-sm shadow-2xl">
+              <Brain className="w-10 h-10 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white">Memory Master</h1>
-              <p className="text-white/80">Challenge your mind with dynamic shuffling</p>
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 to-violet-400 bg-clip-text text-transparent">
+                Memory Master
+              </h1>
+              <p className="text-gray-300 text-lg">Challenge your mind with dynamic reshuffling</p>
             </div>
           </div>
           <UserProfile 
@@ -113,93 +115,125 @@ const Index = () => {
           />
         </div>
 
-        {/* Main Content */}
-        <div className="grid md:grid-cols-2 gap-8">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <div className="relative">
+            <h2 className="text-6xl md:text-8xl font-bold text-transparent bg-gradient-to-r from-violet-400 via-green-400 to-violet-400 bg-clip-text mb-6">
+              ULTIMATE
+            </h2>
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <Sparkles className="w-8 h-8 text-violet-400 animate-pulse" />
+            </div>
+            <div className="absolute -bottom-4 right-1/4">
+              <Zap className="w-6 h-6 text-green-400 animate-bounce" />
+            </div>
+          </div>
+          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            Experience the most challenging memory game ever created. 
+            <span className="text-violet-400 font-semibold"> Cards reshuffle after every move</span> - 
+            can you master the chaos?
+          </p>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-2 gap-12 mb-16">
           {/* Game Setup */}
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Choose Your Theme</h2>
+          <Card className="bg-black/40 backdrop-blur-xl border-violet-800/30 shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <Shuffle className="w-6 h-6 text-green-400" />
+                <h2 className="text-2xl font-bold text-white">Choose Your Challenge</h2>
+              </div>
+              
               <ThemeSelector 
                 selectedTheme={selectedTheme}
                 onThemeSelect={setSelectedTheme}
               />
               
-              <div className="mt-6 space-y-3">
+              <div className="mt-8 space-y-4">
                 <Button 
                   onClick={startGame}
-                  className="w-full bg-white text-purple-600 hover:bg-white/90 font-semibold py-3 text-lg"
+                  className="w-full bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700 text-white font-semibold py-4 text-lg rounded-2xl shadow-lg transition-all duration-300 hover:scale-105"
                   size="lg"
                 >
-                  <Shuffle className="w-5 h-5 mr-2" />
+                  <Brain className="w-5 h-5 mr-2" />
                   Start Dynamic Memory Game
                 </Button>
                 
                 <Button 
                   onClick={() => setShowLeaderboard(true)}
                   variant="outline"
-                  className="w-full border-white/30 text-white hover:bg-white/10"
+                  className="w-full border-green-600/50 text-green-400 hover:bg-green-600/10 hover:border-green-400 rounded-2xl py-4"
                 >
                   <Trophy className="w-5 h-5 mr-2" />
-                  View Leaderboard
+                  View Champions
                 </Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Game Features */}
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Game Features</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Badge className="bg-red-500 text-white mt-1">
+          <Card className="bg-black/40 backdrop-blur-xl border-violet-800/30 shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <Zap className="w-6 h-6 text-violet-400" />
+                <h2 className="text-2xl font-bold text-white">Extreme Features</h2>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <Badge className="bg-red-600 text-white mt-1 px-3 py-1">
                     <Shuffle className="w-4 h-4 mr-1" />
-                    HARD
+                    INSANE
                   </Badge>
                   <div>
-                    <h3 className="font-semibold text-white">Dynamic Shuffling</h3>
-                    <p className="text-white/80 text-sm">Cards reshuffle after every move - even correct ones!</p>
+                    <h3 className="font-semibold text-white text-lg">Dynamic Chaos Mode</h3>
+                    <p className="text-gray-300">Cards reshuffle after EVERY move - correct or wrong!</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-3">
-                  <Badge className="bg-blue-500 text-white mt-1">
+                <div className="flex items-start gap-4">
+                  <Badge className="bg-violet-600 text-white mt-1 px-3 py-1">
                     <Users className="w-4 h-4 mr-1" />
                     AUTH
                   </Badge>
                   <div>
-                    <h3 className="font-semibold text-white">User Accounts</h3>
-                    <p className="text-white/80 text-sm">Sign in to save scores and compete</p>
+                    <h3 className="font-semibold text-white text-lg">Secure Accounts</h3>
+                    <p className="text-gray-300">Sign in to save scores and compete globally</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-3">
-                  <Badge className="bg-green-500 text-white mt-1">
+                <div className="flex items-start gap-4">
+                  <Badge className="bg-green-600 text-white mt-1 px-3 py-1">
                     <Trophy className="w-4 h-4 mr-1" />
-                    RANK
+                    ELITE
                   </Badge>
                   <div>
-                    <h3 className="font-semibold text-white">Global Leaderboard</h3>
-                    <p className="text-white/80 text-sm">Compare your skills with other players</p>
+                    <h3 className="font-semibold text-white text-lg">Champions Board</h3>
+                    <p className="text-gray-300">Only real players who complete the challenge</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-3">
-                  <Badge className="bg-purple-500 text-white mt-1">
+                <div className="flex items-start gap-4">
+                  <Badge className="bg-black text-green-400 border border-green-600 mt-1 px-3 py-1">
                     <Brain className="w-4 h-4 mr-1" />
                     THEMES
                   </Badge>
                   <div>
-                    <h3 className="font-semibold text-white">Custom Themes</h3>
-                    <p className="text-white/80 text-sm">Multiple themes to keep the game fresh</p>
+                    <h3 className="font-semibold text-white text-lg">Custom Themes</h3>
+                    <p className="text-gray-300">Multiple beautiful themes to master</p>
                   </div>
                 </div>
               </div>
               
               {!isAuthenticated && (
-                <div className="mt-6 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
-                  <p className="text-white text-sm">
-                    <strong>Sign in required:</strong> Create an account to play the game and appear on the leaderboard.
+                <div className="mt-8 p-6 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-2xl border border-yellow-600/30">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <h4 className="text-yellow-400 font-semibold">Ready to Challenge Yourself?</h4>
+                  </div>
+                  <p className="text-gray-300 text-sm">
+                    Create an account to play the ultimate memory game and join the elite leaderboard.
                   </p>
                 </div>
               )}
@@ -209,21 +243,24 @@ const Index = () => {
 
         {/* Statistics */}
         {isAuthenticated && currentUser && (
-          <Card className="mt-8 bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Your Stats</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{currentUser.gamesPlayed || 0}</div>
-                  <div className="text-white/80 text-sm">Games Played</div>
+          <Card className="bg-black/40 backdrop-blur-xl border-violet-800/30 shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <Trophy className="w-6 h-6 text-green-400" />
+                <h2 className="text-xl font-bold text-white">Your Progress</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-violet-900/30 rounded-2xl border border-violet-600/30">
+                  <div className="text-3xl font-bold text-violet-400">{currentUser.gamesPlayed || 0}</div>
+                  <div className="text-gray-300 text-sm">Challenges Faced</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{currentUser.bestScore || 'N/A'}</div>
-                  <div className="text-white/80 text-sm">Best Score</div>
+                <div className="text-center p-4 bg-green-900/30 rounded-2xl border border-green-600/30">
+                  <div className="text-3xl font-bold text-green-400">{currentUser.bestScore || 'N/A'}</div>
+                  <div className="text-gray-300 text-sm">Best Performance</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{selectedTheme}</div>
-                  <div className="text-white/80 text-sm">Current Theme</div>
+                <div className="text-center p-4 bg-black/50 rounded-2xl border border-gray-600/30">
+                  <div className="text-3xl font-bold text-white capitalize">{selectedTheme}</div>
+                  <div className="text-gray-300 text-sm">Current Theme</div>
                 </div>
               </div>
             </CardContent>

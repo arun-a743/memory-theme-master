@@ -8,7 +8,7 @@ import { LogIn, LogOut, User } from "lucide-react";
 export const UserProfile = ({ user, isAuthenticated, onLogin, onLogout }) => {
   if (!isAuthenticated) {
     return (
-      <Button onClick={onLogin} className="bg-white text-purple-600 hover:bg-white/90">
+      <Button onClick={onLogin} className="bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700 text-white rounded-2xl">
         <LogIn className="w-4 h-4 mr-2" />
         Sign In
       </Button>
@@ -16,12 +16,12 @@ export const UserProfile = ({ user, isAuthenticated, onLogin, onLogout }) => {
   }
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20">
-      <CardContent className="p-3">
+    <Card className="bg-black/40 backdrop-blur-xl border-violet-800/30 shadow-2xl">
+      <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <Avatar>
+          <Avatar className="ring-2 ring-green-400/50">
             <AvatarImage src={user.avatar} alt={user.username} />
-            <AvatarFallback className="bg-white text-purple-600">
+            <AvatarFallback className="bg-gradient-to-br from-violet-600 to-green-600 text-white">
               <User className="w-4 h-4" />
             </AvatarFallback>
           </Avatar>
@@ -29,9 +29,9 @@ export const UserProfile = ({ user, isAuthenticated, onLogin, onLogout }) => {
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-white truncate">{user.username}</h3>
             <div className="flex items-center gap-2">
-              <Badge className="bg-green-500 text-white text-xs">Online</Badge>
+              <Badge className="bg-green-600 text-white text-xs">Champion</Badge>
               {user.provider === 'google' && (
-                <Badge className="bg-red-500 text-white text-xs">Google</Badge>
+                <Badge className="bg-violet-600 text-white text-xs">Google</Badge>
               )}
             </div>
           </div>
@@ -40,7 +40,7 @@ export const UserProfile = ({ user, isAuthenticated, onLogin, onLogout }) => {
             variant="ghost" 
             size="sm"
             onClick={onLogout}
-            className="text-white hover:bg-white/10"
+            className="text-gray-300 hover:text-white hover:bg-violet-600/20"
           >
             <LogOut className="w-4 h-4" />
           </Button>
