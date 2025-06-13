@@ -3,8 +3,18 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { themes } from "../utils/themes";
 
-export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, theme }) => {
-  const themeData = themes[theme];
+export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, theme, isCustomTheme }) => {
+  // Get theme data (including custom themes)
+  const getThemeData = () => {
+    if (isCustomTheme) {
+      const customThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');
+      const customTheme = customThemes.find(t => t.id === theme);
+      return customTheme || themes.animals;
+    }
+    return themes[theme] || themes.animals;
+  };
+
+  const themeData = getThemeData();
   
   return (
     <Card 
@@ -41,9 +51,17 @@ export const GameCard = ({ card, isFlipped, isMatched, onClick, isShuffling, the
           {/* Card Front */}
           <div className="absolute inset-0 w-full h-full backface-hidden rounded-lg rotate-y-180">
             <div className="w-full h-full bg-gradient-to-br from-white to-gray-100 rounded-lg flex items-center justify-center shadow-inner border border-gray-200">
-              <span className="text-3xl md:text-4xl" role="img" aria-label={card.symbol}>
-                {card.symbol}
-              </span>
+              {isCustomTheme ? (
+                <img 
+                  src={card.symbol} 
+                  alt="Custom card"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <span className="text-3xl md:text-4xl" role="img" aria-label={card.symbol}>
+                  {card.symbol}
+                </span>
+              )}
             </div>
           </div>
         </div>

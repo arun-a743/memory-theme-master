@@ -20,6 +20,24 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
   const [canFlip, setCanFlip] = useState(true);
   const { toast } = useToast();
 
+  // Get theme data (including custom themes)
+  const getThemeData = useCallback(() => {
+    // Check if it's a built-in theme
+    if (themes[theme]) {
+      return themes[theme];
+    }
+    
+    // Check if it's a custom theme
+    const customThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');
+    const customTheme = customThemes.find(t => t.id === theme);
+    if (customTheme) {
+      return customTheme;
+    }
+    
+    // Fallback to animals theme
+    return themes.animals;
+  }, [theme]);
+
   // Timer effect
   useEffect(() => {
     let interval;
@@ -33,12 +51,13 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
 
   // Initialize game
   const initializeGame = useCallback(() => {
-    const themeData = themes[theme];
+    const themeData = getThemeData();
     const gameCards = [];
     
-    // Create pairs of cards
+    // Create pairs of cards - use only first 8 symbols/images
+    const symbolsToUse = themeData.symbols.slice(0, 8);
     for (let i = 0; i < 8; i++) {
-      const symbol = themeData.symbols[i % themeData.symbols.length];
+      const symbol = symbolsToUse[i];
       gameCards.push(
         { id: `${i}-a`, symbol, pairId: i },
         { id: `${i}-b`, symbol, pairId: i }
@@ -55,7 +74,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
     setGameWon(false);
     setGameStarted(true);
     setCanFlip(true);
-  }, [theme]);
+  }, [getThemeData]);
 
   // Enhanced shuffling function that only shuffles unmatched cards
   const shuffleUnmatchedCards = useCallback(() => {
@@ -155,7 +174,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
       const score = {
         userId: user.id,
         username: user.username,
-        theme,
+        theme: getThemeData().name || theme,
         moves,
         time,
         date: new Date().toISOString()
@@ -166,6 +185,11 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
       existingScores.push(score);
       localStorage.setItem('memoryGameScores', JSON.stringify(existingScores));
       
+      // Save to user's game history
+      const existingHistory = JSON.parse(localStorage.getItem('userGameHistory') || '[]');
+      existingHistory.push(score);
+      localStorage.setItem('userGameHistory', JSON.stringify(existingHistory));
+      
       console.log('Game completed! Score saved:', score);
       
       toast({
@@ -173,7 +197,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
         description: `You conquered the chaos in ${moves} moves and ${time} seconds!`,
       });
     }
-  }, [matchedCards.size, cards.length, moves, time, theme, user, toast]);
+  }, [matchedCards.size, cards.length, moves, time, theme, user, toast, getThemeData]);
 
   // Initialize game on mount
   useEffect(() => {
@@ -189,6 +213,8 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
   const resetGame = () => {
     initializeGame();
   };
+
+  const themeData = getThemeData();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-violet-900 p-4">
@@ -213,7 +239,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
               Moves: {moves}
             </Badge>
             <Badge className="bg-black/50 text-white border border-gray-600/50 px-3 py-1 capitalize">
-              {theme}
+              {themeData.name}
             </Badge>
           </div>
         </div>
@@ -245,6 +271,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
               onClick={() => handleCardClick(card.id)}
               isShuffling={isShuffling}
               theme={theme}
+              isCustomTheme={themeData.isCustom}
             />
           ))}
         </div>
