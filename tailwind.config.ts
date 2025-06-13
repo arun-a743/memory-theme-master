@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -84,13 +85,52 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'card-flip': {
+					'0%': { transform: 'rotateY(0deg)' },
+					'100%': { transform: 'rotateY(180deg)' }
+				},
+				'shuffle': {
+					'0%, 100%': { transform: 'scale(1) rotate(0deg)' },
+					'25%': { transform: 'scale(0.95) rotate(-2deg)' },
+					'50%': { transform: 'scale(0.9) rotate(0deg)' },
+					'75%': { transform: 'scale(0.95) rotate(2deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'card-flip': 'card-flip 0.6s ease-in-out',
+				'shuffle': 'shuffle 0.5s ease-in-out'
+			},
+			perspective: {
+				'1000': '1000px'
+			},
+			transformStyle: {
+				'preserve-3d': 'preserve-3d'
+			},
+			backfaceVisibility: {
+				'hidden': 'hidden'
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		function({ addUtilities }) {
+			addUtilities({
+				'.perspective-1000': {
+					perspective: '1000px'
+				},
+				'.transform-style-preserve-3d': {
+					'transform-style': 'preserve-3d'
+				},
+				'.backface-hidden': {
+					'backface-visibility': 'hidden'
+				},
+				'.rotate-y-180': {
+					transform: 'rotateY(180deg)'
+				}
+			})
+		}
+	],
 } satisfies Config;
