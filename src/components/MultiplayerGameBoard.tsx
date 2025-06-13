@@ -21,10 +21,29 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
   const [winner, setWinner] = useState(null);
   const [time, setTime] = useState(0);
   const [canFlip, setCanFlip] = useState(true);
+  const [wrongMoveCounter, setWrongMoveCounter] = useState(0);
   const { toast } = useToast();
 
   const isMyTurn = currentTurn === user.id;
   const opponent = roomData.hostId === user.id ? roomData.guestName : roomData.hostName;
+
+  // Get theme data (including custom themes)
+  const getThemeData = useCallback(() => {
+    // Check if it's a built-in theme
+    if (themes[roomData.theme]) {
+      return themes[roomData.theme];
+    }
+    
+    // Check if it's a custom theme
+    const customThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');
+    const customTheme = customThemes.find(t => t.id === roomData.theme);
+    if (customTheme) {
+      return customTheme;
+    }
+    
+    // Fallback to animals theme
+    return themes.animals;
+  }, [roomData.theme]);
 
   // Timer effect
   useEffect(() => {
@@ -37,9 +56,45 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
     return () => clearInterval(interval);
   }, [gameWon]);
 
+  // Smart shuffle function - only shuffle after 3 wrong moves in a row
+  const smartShuffle = useCallback(() => {
+    if (wrongMoveCounter >= 3) {
+      setCards(prevCards => {
+        const newCards = [...prevCards];
+        const unmatchedIndices = [];
+        const unmatchedCards = [];
+        
+        // Collect unmatched cards and their indices
+        newCards.forEach((card, index) => {
+          if (!matchedCards.has(card.id)) {
+            unmatchedIndices.push(index);
+            unmatchedCards.push(card);
+          }
+        });
+        
+        // Shuffle only unmatched cards
+        const shuffledUnmatched = unmatchedCards.sort(() => Math.random() - 0.5);
+        
+        // Place shuffled cards back in their positions
+        unmatchedIndices.forEach((index, i) => {
+          newCards[index] = shuffledUnmatched[i];
+        });
+        
+        return newCards;
+      });
+      
+      setWrongMoveCounter(0); // Reset counter after shuffle
+      
+      toast({
+        title: "Cards reshuffled! 🔄",
+        description: "Time to adapt your strategy",
+      });
+    }
+  }, [wrongMoveCounter, matchedCards, toast]);
+
   // Initialize game
   const initializeGame = useCallback(() => {
-    const themeData = themes[roomData.theme];
+    const themeData = getThemeData();
     const gameCards = [];
     
     for (let i = 0; i < 8; i++) {
@@ -52,7 +107,8 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
     
     const shuffled = gameCards.sort(() => Math.random() - 0.5);
     setCards(shuffled);
-  }, [roomData.theme]);
+    setWrongMoveCounter(0); // Reset wrong move counter
+  }, [getThemeData]);
 
   // Switch turns
   const switchTurn = () => {
@@ -60,7 +116,7 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
     setCurrentTurn(nextPlayer);
   };
 
-  // Handle card click
+  // Handle card click with improved shuffle logic
   const handleCardClick = useCallback((cardId) => {
     if (!isMyTurn || !canFlip || flippedCards.length >= 2 || flippedCards.includes(cardId) || matchedCards.has(cardId)) {
       if (!isMyTurn) {
@@ -82,7 +138,7 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
       const card2 = cards.find(c => c.id === newFlippedCards[1]);
       
       if (card1.pairId === card2.pairId) {
-        // Match found
+        // Match found - reset wrong move counter
         setTimeout(() => {
           setMatchedCards(prev => new Set([...prev, card1.id, card2.id]));
           setFlippedCards([]);
@@ -91,6 +147,7 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
             [user.id]: prev[user.id] + 1
           }));
           setCanFlip(true);
+          setWrongMoveCounter(0); // Reset on correct match
           
           toast({
             title: "Perfect match! 🎉",
@@ -100,25 +157,32 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
           // Don't switch turns on correct match
         }, 1000);
       } else {
-        // No match
+        // No match - increment wrong move counter and check for shuffle
         setTimeout(() => {
           setFlippedCards([]);
           setCanFlip(true);
+          setWrongMoveCounter(prev => prev + 1);
           switchTurn();
           
           toast({
             title: "No match 😔",
             description: `${opponent}'s turn now`,
           });
+          
+          // Trigger smart shuffle after state update
+          setTimeout(() => {
+            smartShuffle();
+          }, 100);
         }, 1000);
       }
     }
-  }, [flippedCards, matchedCards, isMyTurn, cards, user.id, opponent, toast, canFlip]);
+  }, [flippedCards, matchedCards, isMyTurn, cards, user.id, opponent, toast, canFlip, smartShuffle]);
 
   // Check win condition
   useEffect(() => {
     if (matchedCards.size === cards.length && cards.length > 0) {
       setGameWon(true);
+      setWrongMoveCounter(0); // Reset for next game
       
       const hostScore = playerScores[roomData.hostId];
       const guestScore = playerScores[roomData.guestId || 'guest'];
@@ -149,6 +213,8 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const themeData = getThemeData();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-violet-900 p-4">
       <div className="max-w-4xl mx-auto">
@@ -163,10 +229,17 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
             Back to Lobby
           </Button>
           
-          <Badge className="bg-black/50 text-green-400 border border-green-600/50 px-3 py-1">
-            <Clock className="w-4 h-4 mr-1" />
-            {formatTime(time)}
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Badge className="bg-black/50 text-green-400 border border-green-600/50 px-3 py-1">
+              <Clock className="w-4 h-4 mr-1" />
+              {formatTime(time)}
+            </Badge>
+            {wrongMoveCounter > 0 && (
+              <Badge className="bg-orange-600/80 text-white border border-orange-600/50 px-3 py-1">
+                Wrong: {wrongMoveCounter}/3
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Players Status */}
@@ -212,6 +285,13 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
           <p className="text-gray-300">
             {isMyTurn ? "Find matching pairs to score points!" : "Wait for your opponent to make a move..."}
           </p>
+          {wrongMoveCounter > 0 && (
+            <p className="text-orange-400 text-sm mt-2">
+              {wrongMoveCounter === 1 && "First wrong move - stay focused!"}
+              {wrongMoveCounter === 2 && "Two wrong moves - one more and cards will reshuffle!"}
+              {wrongMoveCounter >= 3 && "Cards reshuffled! Fresh start."}
+            </p>
+          )}
         </div>
 
         {/* Game Grid */}
@@ -225,6 +305,7 @@ export const MultiplayerGameBoard = ({ roomData, user, onBackToLobby }) => {
               onClick={() => handleCardClick(card.id)}
               isShuffling={false}
               theme={roomData.theme}
+              isCustomTheme={themeData.isCustom}
             />
           ))}
         </div>

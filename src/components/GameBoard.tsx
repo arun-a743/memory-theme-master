@@ -18,6 +18,7 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
   const [isShuffling, setIsShuffling] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [canFlip, setCanFlip] = useState(true);
+  const [wrongMoveCounter, setWrongMoveCounter] = useState(0);
   const { toast } = useToast();
 
   // Get theme data (including custom themes)
@@ -74,46 +75,55 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
     setGameWon(false);
     setGameStarted(true);
     setCanFlip(true);
+    setWrongMoveCounter(0);
   }, [getThemeData]);
 
-  // Enhanced shuffling function that only shuffles unmatched cards
-  const shuffleUnmatchedCards = useCallback(() => {
-    setIsShuffling(true);
-    setCanFlip(false);
-    
-    setTimeout(() => {
-      setCards(prevCards => {
-        const newCards = [...prevCards];
-        const unmatchedIndices = [];
-        const unmatchedCards = [];
-        
-        // Collect unmatched cards and their indices
-        newCards.forEach((card, index) => {
-          if (!matchedCards.has(card.id)) {
-            unmatchedIndices.push(index);
-            unmatchedCards.push(card);
-          }
-        });
-        
-        // Shuffle only unmatched cards
-        const shuffledUnmatched = unmatchedCards.sort(() => Math.random() - 0.5);
-        
-        // Place shuffled cards back in their positions
-        unmatchedIndices.forEach((index, i) => {
-          newCards[index] = shuffledUnmatched[i];
-        });
-        
-        return newCards;
-      });
+  // Smart shuffle function - only shuffle after 3 wrong moves in a row
+  const smartShuffle = useCallback(() => {
+    if (wrongMoveCounter >= 3) {
+      setIsShuffling(true);
+      setCanFlip(false);
       
       setTimeout(() => {
-        setIsShuffling(false);
-        setCanFlip(true);
+        setCards(prevCards => {
+          const newCards = [...prevCards];
+          const unmatchedIndices = [];
+          const unmatchedCards = [];
+          
+          // Collect unmatched cards and their indices
+          newCards.forEach((card, index) => {
+            if (!matchedCards.has(card.id)) {
+              unmatchedIndices.push(index);
+              unmatchedCards.push(card);
+            }
+          });
+          
+          // Shuffle only unmatched cards
+          const shuffledUnmatched = unmatchedCards.sort(() => Math.random() - 0.5);
+          
+          // Place shuffled cards back in their positions
+          unmatchedIndices.forEach((index, i) => {
+            newCards[index] = shuffledUnmatched[i];
+          });
+          
+          return newCards;
+        });
+        
+        setTimeout(() => {
+          setIsShuffling(false);
+          setCanFlip(true);
+          setWrongMoveCounter(0); // Reset counter after shuffle
+        }, 300);
       }, 300);
-    }, 300);
-  }, [matchedCards]);
 
-  // Handle card click with enhanced logic
+      toast({
+        title: "Strategic reshuffle! 🔄",
+        description: "Cards reshuffled after 3 wrong moves",
+      });
+    }
+  }, [wrongMoveCounter, matchedCards, toast]);
+
+  // Handle card click with balanced logic
   const handleCardClick = useCallback((cardId) => {
     if (!canFlip || flippedCards.length >= 2 || flippedCards.includes(cardId) || matchedCards.has(cardId) || isShuffling) {
       return;
@@ -130,45 +140,45 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
       const card2 = cards.find(c => c.id === newFlippedCards[1]);
       
       if (card1.pairId === card2.pairId) {
-        // Match found
+        // Match found - reset wrong move counter, no shuffle
         setTimeout(() => {
           setMatchedCards(prev => new Set([...prev, card1.id, card2.id]));
           setFlippedCards([]);
+          setCanFlip(true);
+          setWrongMoveCounter(0); // Reset on correct match
           
           toast({
             title: "Perfect match! 🎉",
-            description: "Cards reshuffling for next challenge...",
+            description: "Keep going!",
           });
-          
-          // Shuffle after correct match
-          setTimeout(() => {
-            shuffleUnmatchedCards();
-          }, 500);
         }, 1000);
       } else {
-        // No match
+        // No match - increment wrong move counter
         setTimeout(() => {
           setFlippedCards([]);
+          setCanFlip(true);
+          setWrongMoveCounter(prev => prev + 1);
           
           toast({
-            title: "Try again! 🔄", 
-            description: "Cards reshuffling...",
+            title: "Try again! 🔄",
+            description: "Keep your memory sharp",
           });
           
-          // Shuffle after incorrect match
+          // Trigger smart shuffle after state update
           setTimeout(() => {
-            shuffleUnmatchedCards();
-          }, 500);
+            smartShuffle();
+          }, 100);
         }, 1000);
       }
     }
-  }, [flippedCards, matchedCards, isShuffling, cards, moves, shuffleUnmatchedCards, toast, canFlip]);
+  }, [flippedCards, matchedCards, isShuffling, cards, moves, smartShuffle, toast, canFlip]);
 
   // Check win condition and save score
   useEffect(() => {
     if (matchedCards.size === cards.length && cards.length > 0) {
       setGameWon(true);
       setGameStarted(false);
+      setWrongMoveCounter(0); // Reset for next game
       
       // Save score to localStorage (simulating backend save)
       const score = {
@@ -193,8 +203,8 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
       console.log('Game completed! Score saved:', score);
       
       toast({
-        title: "🏆 Incredible!",
-        description: `You conquered the chaos in ${moves} moves and ${time} seconds!`,
+        title: "🏆 Victory!",
+        description: `Completed in ${moves} moves and ${time} seconds!`,
       });
     }
   }, [matchedCards.size, cards.length, moves, time, theme, user, toast, getThemeData]);
@@ -238,6 +248,11 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
             <Badge className="bg-black/50 text-violet-400 border border-violet-600/50 px-3 py-1">
               Moves: {moves}
             </Badge>
+            {wrongMoveCounter > 0 && (
+              <Badge className="bg-orange-600/80 text-white border border-orange-600/50 px-3 py-1">
+                Wrong: {wrongMoveCounter}/3
+              </Badge>
+            )}
             <Badge className="bg-black/50 text-white border border-gray-600/50 px-3 py-1 capitalize">
               {themeData.name}
             </Badge>
@@ -247,15 +262,21 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
         {/* Game Status */}
         <div className="text-center mb-6">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-violet-400 bg-clip-text text-transparent mb-2">
-            Dynamic Chaos Mode
+            Smart Challenge Mode
           </h2>
           <p className="text-gray-300">
-            Find all pairs • Cards reshuffle after every move!
+            Find all pairs • Cards reshuffle only after 3 wrong moves!
           </p>
+          {wrongMoveCounter > 0 && (
+            <p className="text-orange-400 text-sm mt-2">
+              {wrongMoveCounter === 1 && "First wrong move - stay focused!"}
+              {wrongMoveCounter === 2 && "Two wrong moves - one more and cards will reshuffle!"}
+            </p>
+          )}
           {isShuffling && (
             <div className="flex items-center justify-center gap-2 mt-2">
               <Shuffle className="w-4 h-4 text-green-400 animate-spin" />
-              <span className="text-green-400 font-medium">Reshuffling chaos...</span>
+              <span className="text-green-400 font-medium">Strategic reshuffle...</span>
             </div>
           )}
         </div>
@@ -294,16 +315,16 @@ export const GameBoard = ({ theme, user, onBackToMenu }) => {
             <Card className="bg-black/90 border-green-600/50 max-w-md w-full">
               <CardContent className="p-6 text-center">
                 <Trophy className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Champion!</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">Victory!</h3>
                 <p className="text-gray-300 mb-4">
-                  You conquered the chaos in <strong className="text-green-400">{moves} moves</strong> and <strong className="text-violet-400">{formatTime(time)}</strong>!
+                  You completed the challenge in <strong className="text-green-400">{moves} moves</strong> and <strong className="text-violet-400">{formatTime(time)}</strong>!
                 </p>
                 <div className="space-y-2">
                   <Button 
                     onClick={resetGame} 
                     className="w-full bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700"
                   >
-                    Face the Chaos Again
+                    Play Again
                   </Button>
                   <Button 
                     onClick={onBackToMenu} 

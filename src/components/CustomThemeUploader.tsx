@@ -1,70 +1,79 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, Image, Check, AlertCircle } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
-export const CustomThemeUploader = ({ onThemeCreated, onClose }) => {
+export const CustomThemeUploader = ({ onThemeCreated }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [themeName, setThemeName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
   const { toast } = useToast();
 
-  const handleFileSelect = useCallback((files) => {
-    const validFiles = Array.from(files).filter(file => {
-      const isValidType = file.type.startsWith('image/');
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
-      return isValidType && isValidSize;
+  const validateFile = (file: File) => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    
+    if (!validTypes.includes(file.type)) {
+      return 'Only PNG, JPG, and WEBP files are allowed';
+    }
+    if (file.size > maxSize) {
+      return 'File size must be less than 2MB';
+    }
+    return null;
+  };
+
+  const handleFileSelect = useCallback((event) => {
+    const files = Array.from(event.target.files || []) as File[];
+    const validFiles = [];
+    const errors = [];
+
+    files.forEach((file) => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
     });
 
-    if (validFiles.length !== files.length) {
+    if (errors.length > 0) {
       toast({
-        title: "Some files were skipped",
-        description: "Only image files under 5MB are allowed",
+        title: "File validation errors",
+        description: errors.join(', '),
         variant: "destructive"
       });
     }
 
-    setSelectedFiles(prev => {
-      const combined = [...prev, ...validFiles];
-      return combined.slice(0, 16); // Max 16 images
-    });
-  }, [toast]);
+    if (selectedFiles.length + validFiles.length > 18) {
+      toast({
+        title: "Too many files",
+        description: "Maximum 18 images allowed",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    handleFileSelect(files);
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+  }, [selectedFiles.length, toast]);
+
+  const handleDrop = useCallback((event) => {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files) as File[];
+    handleFileSelect({ target: { files } });
   }, [handleFileSelect]);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-  }, []);
 
   const removeFile = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const convertFilesToBase64 = async (files) => {
-    const promises = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
-    });
-    return Promise.all(promises);
-  };
-
-  const handleSaveTheme = async () => {
+  const createTheme = async () => {
     if (selectedFiles.length < 8) {
       toast({
         title: "Not enough images",
-        description: "Please upload at least 8 images for a complete theme",
+        description: "Minimum 8 images required",
         variant: "destructive"
       });
       return;
@@ -73,7 +82,7 @@ export const CustomThemeUploader = ({ onThemeCreated, onClose }) => {
     if (!themeName.trim()) {
       toast({
         title: "Theme name required",
-        description: "Please enter a name for your custom theme",
+        description: "Please enter a name for your theme",
         variant: "destructive"
       });
       return;
@@ -82,36 +91,42 @@ export const CustomThemeUploader = ({ onThemeCreated, onClose }) => {
     setIsUploading(true);
 
     try {
-      // Convert files to base64 for local storage (in real app, upload to cloud)
-      const base64Images = await convertFilesToBase64(selectedFiles);
-      
-      // Create theme object
+      // Convert files to base64 URLs for demo (in production, upload to cloud storage)
+      const imageUrls = await Promise.all(
+        selectedFiles.map(file => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
       const customTheme = {
-        id: `custom_${Date.now()}`,
+        id: `custom-${Date.now()}`,
         name: themeName,
-        description: `Custom theme with ${selectedFiles.length} images`,
-        symbols: base64Images,
-        gradient: 'from-violet-600 to-green-600',
+        symbols: imageUrls,
         isCustom: true,
-        createdAt: new Date().toISOString()
+        gradient: 'from-violet-600 to-green-600'
       };
 
-      // Save to localStorage (in real app, save to backend)
+      // Save to localStorage (in production, save to database)
       const existingThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');
       existingThemes.push(customTheme);
       localStorage.setItem('customThemes', JSON.stringify(existingThemes));
 
       toast({
-        title: "Theme created successfully! 🎨",
-        description: `"${themeName}" is now available in your themes`,
+        title: "Theme created!",
+        description: `"${themeName}" is ready to use`,
       });
 
       onThemeCreated(customTheme);
-      onClose();
+      setSelectedFiles([]);
+      setThemeName('');
     } catch (error) {
       toast({
-        title: "Failed to create theme",
-        description: "Please try again",
+        title: "Upload failed",
+        description: "Failed to create theme. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -119,156 +134,103 @@ export const CustomThemeUploader = ({ onThemeCreated, onClose }) => {
     }
   };
 
-  const isValid = selectedFiles.length >= 8 && themeName.trim();
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="bg-black/90 border-green-600/50 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-bold text-white">Create Custom Theme</h3>
-              <p className="text-gray-300">Upload 8-16 images to create your personalized memory game</p>
-            </div>
-            <Button 
-              onClick={onClose}
-              variant="outline"
-              size="sm"
-              className="border-gray-600/50 text-gray-300 hover:bg-gray-800/50"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+    <Card className="bg-black/40 backdrop-blur-xl border-violet-800/30 shadow-2xl">
+      <CardContent className="p-6">
+        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-violet-400" />
+          Create Custom Theme
+        </h3>
 
-          {/* Theme Name Input */}
-          <div className="mb-6">
-            <label className="block text-white font-medium mb-2">Theme Name</label>
-            <input
-              type="text"
-              value={themeName}
-              onChange={(e) => setThemeName(e.target.value)}
-              placeholder="My Custom Theme"
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:border-green-400 focus:outline-none"
-              maxLength={30}
-            />
-          </div>
+        {/* Theme Name Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Theme Name
+          </label>
+          <input
+            type="text"
+            value={themeName}
+            onChange={(e) => setThemeName(e.target.value)}
+            placeholder="Enter theme name..."
+            className="w-full px-3 py-2 bg-gray-900/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:border-violet-400 focus:outline-none"
+          />
+        </div>
 
-          {/* Upload Area */}
-          <div 
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 mb-6",
-              selectedFiles.length > 0 
-                ? "border-green-600/50 bg-green-900/10" 
-                : "border-gray-600/50 bg-gray-900/20 hover:border-violet-600/50 hover:bg-violet-900/10"
-            )}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
+        {/* Upload Zone */}
+        <div
+          className="border-2 border-dashed border-gray-600/50 rounded-xl p-8 text-center mb-4 hover:border-violet-400/50 transition-colors"
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-300 mb-2">Drag & drop images here or</p>
+          <Button
+            variant="outline"
+            className="border-violet-600/50 text-violet-400 hover:bg-violet-600/10"
+            onClick={() => document.getElementById('file-input')?.click()}
           >
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-white mb-2">
-              Drag & drop images here
-            </h4>
-            <p className="text-gray-300 mb-4">
-              Or click to select files (JPG, PNG, WEBP - max 5MB each)
-            </p>
-            <Button 
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700"
-            >
-              <Image className="w-4 h-4 mr-2" />
-              Select Images
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => handleFileSelect(e.target.files)}
-              className="hidden"
-            />
-          </div>
+            Select Files
+          </Button>
+          <input
+            id="file-input"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <p className="text-xs text-gray-400 mt-2">
+            8-18 images • PNG, JPG, WEBP • Max 2MB each
+          </p>
+        </div>
 
-          {/* File Count Indicator */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Badge 
-                className={cn(
-                  "text-white",
-                  selectedFiles.length >= 8 
-                    ? "bg-green-600" 
-                    : "bg-gray-600"
-                )}
-              >
-                {selectedFiles.length >= 8 ? <Check className="w-3 h-3 mr-1" /> : <AlertCircle className="w-3 h-3 mr-1" />}
-                {selectedFiles.length}/16 images
+        {/* Selected Files */}
+        {selectedFiles.length > 0 && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm font-medium text-gray-300">
+                Selected Images ({selectedFiles.length}/18)
+              </span>
+              <Badge className={`${selectedFiles.length >= 8 ? 'bg-green-600' : 'bg-orange-600'} text-white`}>
+                {selectedFiles.length >= 8 ? 'Ready' : `Need ${8 - selectedFiles.length} more`}
               </Badge>
-              {selectedFiles.length < 8 && (
-                <span className="text-sm text-gray-400">
-                  Need at least 8 images
-                </span>
-              )}
             </div>
-            {selectedFiles.length > 0 && (
-              <Button
-                onClick={() => setSelectedFiles([])}
-                variant="outline"
-                size="sm"
-                className="border-gray-600/50 text-gray-300 hover:bg-gray-800/50"
-              >
-                Clear All
-              </Button>
-            )}
+            <div className="grid grid-cols-4 gap-2">
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-16 object-cover rounded-lg border border-gray-600/50"
+                  />
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Image Previews */}
-          {selectedFiles.length > 0 && (
-            <div className="max-h-64 overflow-y-auto mb-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {selectedFiles.map((file, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-900/50 border border-gray-600/30">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Create Button */}
+        <Button
+          onClick={createTheme}
+          disabled={selectedFiles.length < 8 || !themeName.trim() || isUploading}
+          className="w-full bg-gradient-to-r from-violet-600 to-green-600 hover:from-violet-700 hover:to-green-700 disabled:opacity-50"
+        >
+          {isUploading ? (
+            "Creating Theme..."
+          ) : (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              Create Theme
+            </>
           )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleSaveTheme}
-              disabled={!isValid || isUploading}
-              className={cn(
-                "flex-1 font-semibold py-3",
-                isValid 
-                  ? "bg-gradient-to-r from-green-600 to-violet-600 hover:from-green-700 hover:to-violet-700" 
-                  : "bg-gray-600 cursor-not-allowed"
-              )}
-            >
-              {isUploading ? "Creating Theme..." : "Create Custom Theme"}
-            </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="border-gray-600/50 text-gray-300 hover:bg-gray-800/50"
-            >
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
